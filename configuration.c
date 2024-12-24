@@ -1471,31 +1471,27 @@ const char *config_get_all_timezones(void)
    return char_list_new_special(STRING_LIST_TIMEZONES, NULL);
 }
 
-static void load_timezone(char *s)
+static void load_timezone(char *s, size_t len)
 {
    char haystack[TIMEZONE_LENGTH+32];
-   static char *needle     = "TIMEZONE=";
    RFILE *tzfp             = filestream_open(LAKKA_TIMEZONE_PATH,
                        RETRO_VFS_FILE_ACCESS_READ,
                        RETRO_VFS_FILE_ACCESS_HINT_NONE);
    if (tzfp)
    {
-      char *start          = NULL;
+      static char *needle = "TIMEZONE=";
+      char *start = NULL;
 
       filestream_gets(tzfp, haystack, sizeof(haystack)-1);
       filestream_close(tzfp);
 
       if ((start = strstr(haystack, needle)))
-      {
-         size_t needle_len = STRLEN_CONST("TIMEZONE=");
-         strlcpy(s, start + needle_len, TIMEZONE_LENGTH);
-      }
+         strlcpy(s, start + STRLEN_CONST("TIMEZONE="), len);
       else
-         strlcpy(s, DEFAULT_TIMEZONE,   TIMEZONE_LENGTH);
+         strlcpy(s, DEFAULT_TIMEZONE, len);
    }
    else
-      strlcpy(s, DEFAULT_TIMEZONE, TIMEZONE_LENGTH);
-
+      strlcpy(s, DEFAULT_TIMEZONE, len);
    config_set_timezone(s);
 }
 #endif
@@ -1547,19 +1543,10 @@ static struct config_array_setting *populate_settings_array(
 
    for (i = 0; i < MAX_USERS; i++)
    {
-      size_t _len;
-      char formatted_number[4];
-      char prefix[16];
       char key[32];
-
-      formatted_number[0] = '\0';
-
-      snprintf(formatted_number, sizeof(formatted_number), "%u", i + 1);
-      _len = strlcpy(prefix, "input_player",   sizeof(prefix));
-      strlcpy(prefix + _len, formatted_number, sizeof(prefix) - _len);
-      _len = strlcpy(key, prefix, sizeof(key));
+      size_t _len  = strlcpy(key, "input_player", sizeof(key));
+      _len += snprintf(key + _len, sizeof(key) - _len, "%u", i + 1);
       strlcpy(key + _len, "_reserved_device", sizeof(key) - _len);
-
       SETTING_ARRAY(strdup(key), settings->arrays.input_reserved_devices[i], false, NULL, true);
    }
 
@@ -2292,11 +2279,11 @@ static struct config_float_setting *populate_settings_float(
 #endif
 
    SETTING_FLOAT("video_aspect_ratio",           &settings->floats.video_aspect_ratio, true, DEFAULT_ASPECT_RATIO, false);
-   SETTING_FLOAT("video_viewport_bias_x",        &settings->floats.video_viewport_bias_x, true, DEFAULT_VIEWPORT_BIAS_X, false);
-   SETTING_FLOAT("video_viewport_bias_y",        &settings->floats.video_viewport_bias_y, true, DEFAULT_VIEWPORT_BIAS_Y, false);
+   SETTING_FLOAT("video_viewport_bias_x",        &settings->floats.video_vp_bias_x, true, DEFAULT_VIEWPORT_BIAS_X, false);
+   SETTING_FLOAT("video_viewport_bias_y",        &settings->floats.video_vp_bias_y, true, DEFAULT_VIEWPORT_BIAS_Y, false);
 #if defined(RARCH_MOBILE)
-   SETTING_FLOAT("video_viewport_bias_portrait_x", &settings->floats.video_viewport_bias_portrait_x, true, DEFAULT_VIEWPORT_BIAS_PORTRAIT_X, false);
-   SETTING_FLOAT("video_viewport_bias_portrait_y", &settings->floats.video_viewport_bias_portrait_y, true, DEFAULT_VIEWPORT_BIAS_PORTRAIT_Y, false);
+   SETTING_FLOAT("video_viewport_bias_portrait_x", &settings->floats.video_vp_bias_portrait_x, true, DEFAULT_VIEWPORT_BIAS_PORTRAIT_X, false);
+   SETTING_FLOAT("video_viewport_bias_portrait_y", &settings->floats.video_vp_bias_portrait_y, true, DEFAULT_VIEWPORT_BIAS_PORTRAIT_Y, false);
 #endif
    SETTING_FLOAT("video_refresh_rate",           &settings->floats.video_refresh_rate, true, DEFAULT_REFRESH_RATE, false);
    SETTING_FLOAT("video_autoswitch_pal_threshold", &settings->floats.video_autoswitch_pal_threshold, true, DEFAULT_AUTOSWITCH_PAL_THRESHOLD, false);
@@ -2444,10 +2431,10 @@ static struct config_uint_setting *populate_settings_uint(
 
    SETTING_UINT("crt_switch_resolution",         &settings->uints.crt_switch_resolution, true, DEFAULT_CRT_SWITCH_RESOLUTION, false);
    SETTING_UINT("crt_switch_resolution_super",   &settings->uints.crt_switch_resolution_super, true, DEFAULT_CRT_SWITCH_RESOLUTION_SUPER, false);
-   SETTING_UINT("custom_viewport_width",         &settings->video_viewport_custom.width, false, 0 /* TODO */, false);
-   SETTING_UINT("custom_viewport_height",        &settings->video_viewport_custom.height, false, 0 /* TODO */, false);
-   SETTING_UINT("custom_viewport_x",             (unsigned*)&settings->video_viewport_custom.x, false, 0 /* TODO */, false);
-   SETTING_UINT("custom_viewport_y",             (unsigned*)&settings->video_viewport_custom.y, false, 0 /* TODO */, false);
+   SETTING_UINT("custom_viewport_width",         &settings->video_vp_custom.width, false, 0 /* TODO */, false);
+   SETTING_UINT("custom_viewport_height",        &settings->video_vp_custom.height, false, 0 /* TODO */, false);
+   SETTING_UINT("custom_viewport_x",             (unsigned*)&settings->video_vp_custom.x, false, 0 /* TODO */, false);
+   SETTING_UINT("custom_viewport_y",             (unsigned*)&settings->video_vp_custom.y, false, 0 /* TODO */, false);
    SETTING_UINT("aspect_ratio_index",            &settings->uints.video_aspect_ratio_idx, true, DEFAULT_ASPECT_RATIO_IDX, false);
    SETTING_UINT("video_autoswitch_refresh_rate", &settings->uints.video_autoswitch_refresh_rate, true, DEFAULT_AUTOSWITCH_REFRESH_RATE, false);
    SETTING_UINT("video_monitor_index",           &settings->uints.video_monitor_index, true, DEFAULT_MONITOR_INDEX, false);
@@ -2748,7 +2735,7 @@ void config_set_defaults(void *data)
    const char *def_record           = config_get_default_record();
    const char *def_midi             = config_get_default_midi();
    const char *def_mitm             = DEFAULT_NETPLAY_MITM_SERVER;
-   struct video_viewport *custom_vp = &settings->video_viewport_custom;
+   struct video_viewport *custom_vp = &settings->video_vp_custom;
    struct config_float_setting      *float_settings = populate_settings_float (settings, &float_settings_size);
    struct config_bool_setting       *bool_settings  = populate_settings_bool  (settings, &bool_settings_size);
    struct config_int_setting        *int_settings   = populate_settings_int   (settings, &int_settings_size);
@@ -2947,7 +2934,7 @@ void config_set_defaults(void *data)
    configuration_set_bool(settings,
          settings->bools.bluetooth_enable, filestream_exists(LAKKA_BLUETOOTH_PATH));
    configuration_set_bool(settings, settings->bools.localap_enable, false);
-   load_timezone(settings->arrays.timezone);
+   load_timezone(settings->arrays.timezone, TIMEZONE_LENGTH);
 #endif
 
 #if __APPLE__
@@ -4393,7 +4380,7 @@ bool config_load_override(void *data)
    /* Create a new config file from core_path */
    if (path_is_valid(core_path))
    {
-      char tmp_path[PATH_MAX_LENGTH + 1];
+      char tmp_path[PATH_MAX_LENGTH];
 
       RARCH_LOG("[Overrides]: Core-specific overrides found at \"%s\".\n",
             core_path);
@@ -4423,7 +4410,7 @@ bool config_load_override(void *data)
       /* Create a new config file from content_path */
       if (path_is_valid(content_path))
       {
-         char tmp_path[PATH_MAX_LENGTH + 1];
+         char tmp_path[PATH_MAX_LENGTH];
 
          RARCH_LOG("[Overrides]: Content dir-specific overrides found at \"%s\".\n",
                content_path);
@@ -4451,7 +4438,7 @@ bool config_load_override(void *data)
       /* Create a new config file from game_path */
       if (path_is_valid(game_path))
       {
-         char tmp_path[PATH_MAX_LENGTH + 1];
+         char tmp_path[PATH_MAX_LENGTH];
 
          RARCH_LOG("[Overrides]: Game-specific overrides found at \"%s\".\n",
                game_path);
@@ -4659,12 +4646,14 @@ bool config_load_remap(const char *directory_input_remapping,
        )
    {
       /* Ensure directory does not contain special chars */
-      const char *inp_dev_dir = sanitize_path_part(inp_dev_name, strlen(inp_dev_name));
+      const char *inp_dev_dir = sanitize_path_part(
+            inp_dev_name, strlen(inp_dev_name));
       /*  Build the new path with the controller name */
       size_t _len = strlcpy(remap_path, core_name, sizeof(remap_path));
-      _len += strlcpy(remap_path + _len, PATH_DEFAULT_SLASH(), sizeof(remap_path) - _len);
-      _len += strlcpy(remap_path + _len, inp_dev_dir, sizeof(remap_path) - _len);
-
+      _len += strlcpy(remap_path + _len, PATH_DEFAULT_SLASH(),
+            sizeof(remap_path) - _len);
+      _len += strlcpy(remap_path + _len, inp_dev_dir,
+            sizeof(remap_path) - _len);
       /* Deallocate as we no longer this */
       free((char*)inp_dev_dir);
       inp_dev_dir = NULL;
@@ -5103,13 +5092,9 @@ void config_get_autoconf_profile_filename(
 
    /* Driver specific autoconf dir may not exist, if autoconfs are not downloaded. */
    if (!path_is_directory(buf))
-   {
       len = strlcpy(buf, sanitised_name, len_buf);
-   }
    else
-   {
       len = fill_pathname_join_special(buf, joypad_driver, sanitised_name, len_buf);
-   }
    strlcpy(buf + len, ".cfg", len_buf - len);
 
 end:
@@ -6047,8 +6032,8 @@ bool input_remapping_save_file(const char *path)
       return false;
 
    /* Create output directory, if required */
-   _len = strlcpy(remap_file_dir, path, sizeof(remap_file_dir));
-   path_parent_dir(remap_file_dir, _len);
+   fill_pathname_parent_dir(remap_file_dir, path,
+         sizeof(remap_file_dir));
 
    if (   !string_is_empty(remap_file_dir)
        && !path_is_directory(remap_file_dir)

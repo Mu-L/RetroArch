@@ -2572,7 +2572,7 @@ static int setting_action_ok_bind_all_save_autoconfig(
       char buf[128];
       char msg[NAME_MAX_LENGTH];
       config_get_autoconf_profile_filename(name, index_offset, buf, sizeof(buf));
-      snprintf(msg, sizeof(msg),msg_hash_to_str(MSG_AUTOCONFIG_FILE_SAVED_SUCCESSFULLY_NAMED),buf);
+      snprintf(msg, sizeof(msg),msg_hash_to_str(MSG_AUTOCONFIG_FILE_SAVED_SUCCESSFULLY_NAMED), buf);
       runloop_msg_queue_push(
             msg, 1, 180, true,
             NULL, MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
@@ -2980,10 +2980,10 @@ static void setting_get_string_representation_state_slot(rarch_setting_t *settin
 {
    if (!setting)
       return;
-
-   snprintf(s, len, "%d", *setting->value.target.integer);
    if (*setting->value.target.integer == -1)
       strlcpy(s, "Auto", len);
+   else
+      snprintf(s, len, "%d", *setting->value.target.integer);
 }
 
 static void setting_get_string_representation_percentage(rarch_setting_t *setting,
@@ -4956,7 +4956,7 @@ static void setting_get_string_representation_uint_video_monitor_index(rarch_set
       strlcpy(s, "0 (Auto)", len);
 }
 
-static void setting_get_string_representation_uint_custom_viewport_width(rarch_setting_t *setting,
+static void setting_get_string_representation_uint_custom_vp_width(rarch_setting_t *setting,
       char *s, size_t len)
 {
    size_t _len;
@@ -4981,7 +4981,7 @@ static void setting_get_string_representation_uint_custom_viewport_width(rarch_s
             *setting->value.target.unsigned_integer / geom->base_height);
 }
 
-static void setting_get_string_representation_uint_custom_viewport_height(rarch_setting_t *setting,
+static void setting_get_string_representation_uint_custom_vp_height(rarch_setting_t *setting,
       char *s, size_t len)
 {
    size_t _len;
@@ -5010,34 +5010,33 @@ static void setting_get_string_representation_uint_custom_viewport_height(rarch_
 static void setting_get_string_representation_uint_audio_wasapi_sh_buffer_length(rarch_setting_t *setting,
       char *s, size_t len)
 {
+   size_t _len;
    settings_t *settings = config_get_ptr();
 
    if (!setting || !settings)
       return;
 
+   _len = snprintf(s, len, "%u (", *setting->value.target.integer);
    switch (*setting->value.target.integer)
    {
       case WASAPI_SH_BUFFER_AUDIO_LATENCY:
-         snprintf(s, len, "%u (%s)",
-               *setting->value.target.integer,
-               "Audio Latency");
+         /* TODO/FIXME - localize */
+         _len += strlcpy(s + _len, "Audio Latency", len - _len);
          break;
       case WASAPI_SH_BUFFER_DEVICE_PERIOD:
-         snprintf(s, len, "%u (%s)",
-               *setting->value.target.integer,
-               "Device Period");
+         /* TODO/FIXME - localize */
+         _len += strlcpy(s + _len, "Device Period", len - _len);
          break;
       case WASAPI_SH_BUFFER_CLIENT_BUFFER:
-         snprintf(s, len, "%u (%s)",
-               *setting->value.target.integer,
-               "Client Buffer");
+         /* TODO/FIXME - localize */
+         _len += strlcpy(s + _len, "Client Buffer", len - _len);
          break;
       default:
-         snprintf(s, len, "%u (%.1f ms)",
-               *setting->value.target.integer,
+         _len += snprintf(s + _len, len - _len, "%.1f ms",
                (float)*setting->value.target.integer * 1000 / settings->uints.audio_output_sample_rate);
          break;
    }
+   strlcpy(s + _len, ")", len - _len);
 }
 
 #ifdef HAVE_MICROPHONE
@@ -5825,14 +5824,14 @@ static int setting_action_left_input_mouse_index(
    return 0;
 }
 
-static int setting_uint_action_left_custom_viewport_width(
+static int setting_uint_action_left_custom_vp_width(
       rarch_setting_t *setting, size_t idx, bool wraparound)
 {
    video_viewport_t vp;
    video_driver_state_t *video_st       = video_state_get_ptr();
    struct retro_system_av_info *av_info = &video_st->av_info;
    settings_t                 *settings = config_get_ptr();
-   video_viewport_t            *custom  = &settings->video_viewport_custom;
+   video_viewport_t            *custom  = &settings->video_vp_custom;
 
    if (!settings || !av_info)
       return -1;
@@ -5872,14 +5871,14 @@ static int setting_uint_action_left_custom_viewport_width(
    return 0;
 }
 
-static int setting_uint_action_left_custom_viewport_height(
+static int setting_uint_action_left_custom_vp_height(
       rarch_setting_t *setting, size_t idx, bool wraparound)
 {
    video_viewport_t vp;
    video_driver_state_t *video_st       = video_state_get_ptr();
    struct retro_system_av_info *av_info = &video_st->av_info;
    settings_t                 *settings = config_get_ptr();
-   video_viewport_t            *custom  = &settings->video_viewport_custom;
+   video_viewport_t            *custom  = &settings->video_vp_custom;
 
    if (!settings || !av_info)
       return -1;
@@ -6174,14 +6173,14 @@ static int setting_uint_action_right_crt_switch_resolution_super(
    return 0;
 }
 
-static int setting_uint_action_right_custom_viewport_width(
+static int setting_uint_action_right_custom_vp_width(
       rarch_setting_t *setting, size_t idx, bool wraparound)
 {
    video_viewport_t vp;
    settings_t                 *settings = config_get_ptr();
    video_driver_state_t *video_st       = video_state_get_ptr();
    struct retro_system_av_info *av_info = &video_st->av_info;
-   video_viewport_t            *custom  = &settings->video_viewport_custom;
+   video_viewport_t            *custom  = &settings->video_vp_custom;
 
    if (!settings || !av_info)
       return -1;
@@ -6209,14 +6208,14 @@ static int setting_uint_action_right_custom_viewport_width(
    return 0;
 }
 
-static int setting_uint_action_right_custom_viewport_height(
+static int setting_uint_action_right_custom_vp_height(
       rarch_setting_t *setting, size_t idx, bool wraparound)
 {
    video_viewport_t vp;
    video_driver_state_t *video_st       = video_state_get_ptr();
    struct retro_system_av_info *av_info = &video_st->av_info;
    settings_t                 *settings = config_get_ptr();
-   video_viewport_t            *custom  = &settings->video_viewport_custom;
+   video_viewport_t            *custom  = &settings->video_vp_custom;
 
    if (!settings || !av_info)
       return -1;
@@ -6715,9 +6714,11 @@ static void setting_get_string_representation_video_frame_delay(rarch_setting_t 
                      target_unit,
                      (unsigned)(1 / settings->floats.video_refresh_rate * 1000 * (*setting->value.target.unsigned_integer / 100.0f)));
             else
-               snprintf(s, len, "%u%s",
-                     *setting->value.target.unsigned_integer,
-                     target_unit);
+            {
+               size_t _len = snprintf(s, len, "%u",
+                     *setting->value.target.unsigned_integer);
+               strlcpy(s + _len, target_unit, len - _len);
+            }
          }
          else
          {
@@ -6739,17 +6740,13 @@ static void setting_get_string_representation_video_frame_delay(rarch_setting_t 
    }
    else
    {
-      const char *target_unit        = (*setting->value.target.unsigned_integer >= 20 ? "\%" : "ms");
-
+      const char *target_unit = (*setting->value.target.unsigned_integer >= 20 ? "\%" : "ms");
+      size_t _len = snprintf(s, len, "%u",
+            *setting->value.target.unsigned_integer);
+      _len += strlcpy(s + _len, target_unit, len - _len);
       if (*setting->value.target.unsigned_integer >= 20)
-         snprintf(s, len, "%u%s (%ums)",
-               *setting->value.target.unsigned_integer,
-               target_unit,
+         snprintf(s + _len, len - _len, " (%ums)",
                (unsigned)(1 / settings->floats.video_refresh_rate * 1000 * (*setting->value.target.unsigned_integer / 100.0f)));
-      else
-         snprintf(s, len, "%u%s",
-               *setting->value.target.unsigned_integer,
-               target_unit);
    }
 }
 
@@ -7906,13 +7903,13 @@ static int setting_action_start_input_device_reserved_device_name(rarch_setting_
    return 0;
 }
 
-static int setting_action_start_custom_viewport_width(rarch_setting_t *setting)
+static int setting_action_start_custom_vp_width(rarch_setting_t *setting)
 {
    video_viewport_t vp;
    video_driver_state_t *video_st       = video_state_get_ptr();
    struct retro_system_av_info *av_info = &video_st->av_info;
    settings_t                 *settings = config_get_ptr();
-   video_viewport_t            *custom  = &settings->video_viewport_custom;
+   video_viewport_t            *custom  = &settings->video_vp_custom;
 
    if (!settings || !av_info)
       return -1;
@@ -7940,13 +7937,13 @@ static int setting_action_start_custom_viewport_width(rarch_setting_t *setting)
    return 0;
 }
 
-static int setting_action_start_custom_viewport_height(rarch_setting_t *setting)
+static int setting_action_start_custom_vp_height(rarch_setting_t *setting)
 {
    video_viewport_t vp;
    video_driver_state_t *video_st       = video_state_get_ptr();
    struct retro_system_av_info *av_info = &video_st->av_info;
    settings_t                 *settings = config_get_ptr();
-   video_viewport_t            *custom  = &settings->video_viewport_custom;
+   video_viewport_t            *custom  = &settings->video_vp_custom;
 
    if (!settings || !av_info)
       return -1;
@@ -8537,7 +8534,7 @@ static void general_write_handler(rarch_setting_t *setting)
             video_viewport_t vp;
             video_driver_state_t *video_st       = video_state_get_ptr();
             struct retro_system_av_info *av_info = &video_st->av_info;
-            struct video_viewport *custom_vp     = &settings->video_viewport_custom;
+            struct video_viewport *custom_vp     = &settings->video_vp_custom;
 
             video_driver_get_viewport_info(&vp);
 
@@ -8877,7 +8874,7 @@ static void general_write_handler(rarch_setting_t *setting)
             rarch_system_info_t *sys_info        = &runloop_state_get_ptr()->system;
             video_driver_state_t *video_st       = video_state_get_ptr();
             struct retro_system_av_info *av_info = &video_st->av_info;
-            video_viewport_t *custom_vp          = &settings->video_viewport_custom;
+            video_viewport_t *custom_vp          = &settings->video_vp_custom;
 
             if (sys_info)
             {
@@ -9231,7 +9228,7 @@ static void general_write_handler(rarch_setting_t *setting)
             /* Whenever custom viewport dimensions are
              * changed, ASPECT_RATIO_CUSTOM must be
              * recalculated */
-            video_viewport_t *custom_vp = &settings->video_viewport_custom;
+            video_viewport_t *custom_vp = &settings->video_vp_custom;
             float default_aspect        = aspectratio_lut[ASPECT_RATIO_CORE].value;
 
             aspectratio_lut[ASPECT_RATIO_CUSTOM].value =
@@ -9959,7 +9956,10 @@ static bool setting_append_list_input_player_options(
                   input_config_bind_map_get_desc(i),
                   sizeof(label) - _len);
 
-         snprintf(name, sizeof(name), "p%u_%s", user + 1, input_config_bind_map_get_base(i));
+         _len = snprintf(name, sizeof(name), "p%u_", user + 1);
+         strlcpy(name + _len,
+               input_config_bind_map_get_base(i),
+               sizeof(name) - _len);
 
          CONFIG_BIND_ALT(
                list, list_info,
@@ -12805,7 +12805,7 @@ static bool setting_append_list(
          break;
       case SETTINGS_LIST_VIDEO:
          {
-            struct video_viewport *custom_vp   = &settings->video_viewport_custom;
+            struct video_viewport *custom_vp   = &settings->video_vp_custom;
             START_GROUP(list, list_info, &group_info, msg_hash_to_str(MENU_ENUM_LABEL_VALUE_VIDEO_SETTINGS), parent_group);
             MENU_SETTINGS_LIST_CURRENT_ADD_ENUM_IDX_PTR(list, list_info, MENU_ENUM_LABEL_VIDEO_SETTINGS);
 
@@ -13196,7 +13196,7 @@ static bool setting_append_list(
 
             CONFIG_FLOAT(
                   list, list_info,
-                  &settings->floats.video_viewport_bias_x,
+                  &settings->floats.video_vp_bias_x,
                   MENU_ENUM_LABEL_VIDEO_VIEWPORT_BIAS_X,
                   MENU_ENUM_LABEL_VALUE_VIDEO_VIEWPORT_BIAS_X,
                   DEFAULT_VIEWPORT_BIAS_X,
@@ -13215,7 +13215,7 @@ static bool setting_append_list(
 
             CONFIG_FLOAT(
                   list, list_info,
-                  &settings->floats.video_viewport_bias_y,
+                  &settings->floats.video_vp_bias_y,
                   MENU_ENUM_LABEL_VIDEO_VIEWPORT_BIAS_Y,
                   MENU_ENUM_LABEL_VALUE_VIDEO_VIEWPORT_BIAS_Y,
                   DEFAULT_VIEWPORT_BIAS_Y,
@@ -13235,7 +13235,7 @@ static bool setting_append_list(
 #if defined(RARCH_MOBILE)
             CONFIG_FLOAT(
                   list, list_info,
-                  &settings->floats.video_viewport_bias_portrait_x,
+                  &settings->floats.video_vp_bias_portrait_x,
                   MENU_ENUM_LABEL_VIDEO_VIEWPORT_BIAS_PORTRAIT_X,
                   MENU_ENUM_LABEL_VALUE_VIDEO_VIEWPORT_BIAS_PORTRAIT_X,
                   DEFAULT_VIEWPORT_BIAS_PORTRAIT_X,
@@ -13254,7 +13254,7 @@ static bool setting_append_list(
 
             CONFIG_FLOAT(
                   list, list_info,
-                  &settings->floats.video_viewport_bias_portrait_y,
+                  &settings->floats.video_vp_bias_portrait_y,
                   MENU_ENUM_LABEL_VIDEO_VIEWPORT_BIAS_PORTRAIT_Y,
                   MENU_ENUM_LABEL_VALUE_VIDEO_VIEWPORT_BIAS_PORTRAIT_Y,
                   DEFAULT_VIEWPORT_BIAS_PORTRAIT_Y,
@@ -13411,10 +13411,10 @@ static bool setting_append_list(
             menu_settings_list_current_add_range(list, list_info, 1, 9999, 1, true, true);
             SETTINGS_DATA_LIST_CURRENT_ADD_FLAGS(list, list_info, SD_FLAG_ALLOW_INPUT);
             (*list)[list_info->index - 1].get_string_representation =
-                  &setting_get_string_representation_uint_custom_viewport_width;
-            (*list)[list_info->index - 1].action_start = &setting_action_start_custom_viewport_width;
-            (*list)[list_info->index - 1].action_left  = &setting_uint_action_left_custom_viewport_width;
-            (*list)[list_info->index - 1].action_right = &setting_uint_action_right_custom_viewport_width;
+                  &setting_get_string_representation_uint_custom_vp_width;
+            (*list)[list_info->index - 1].action_start = &setting_action_start_custom_vp_width;
+            (*list)[list_info->index - 1].action_left  = &setting_uint_action_left_custom_vp_width;
+            (*list)[list_info->index - 1].action_right = &setting_uint_action_right_custom_vp_width;
             MENU_SETTINGS_LIST_CURRENT_ADD_CMD(list, list_info,
                   CMD_EVENT_VIDEO_APPLY_STATE_CHANGES);
 
@@ -13432,10 +13432,10 @@ static bool setting_append_list(
             menu_settings_list_current_add_range(list, list_info, 1, 9999, 1, true, true);
             SETTINGS_DATA_LIST_CURRENT_ADD_FLAGS(list, list_info, SD_FLAG_ALLOW_INPUT);
             (*list)[list_info->index - 1].get_string_representation =
-                  &setting_get_string_representation_uint_custom_viewport_height;
-            (*list)[list_info->index - 1].action_start = &setting_action_start_custom_viewport_height;
-            (*list)[list_info->index - 1].action_left  = &setting_uint_action_left_custom_viewport_height;
-            (*list)[list_info->index - 1].action_right = &setting_uint_action_right_custom_viewport_height;
+                  &setting_get_string_representation_uint_custom_vp_height;
+            (*list)[list_info->index - 1].action_start = &setting_action_start_custom_vp_height;
+            (*list)[list_info->index - 1].action_left  = &setting_uint_action_left_custom_vp_height;
+            (*list)[list_info->index - 1].action_right = &setting_uint_action_right_custom_vp_height;
             MENU_SETTINGS_LIST_CURRENT_ADD_CMD(list, list_info,
                   CMD_EVENT_VIDEO_APPLY_STATE_CHANGES);
 
@@ -16152,7 +16152,7 @@ static bool setting_append_list(
                   msg_hash_to_str(MENU_ENUM_LABEL_VALUE_INPUT_USER_BINDS);
                for (user = 0; user < MAX_USERS; user++)
                {
-                  static char binds_list[MAX_USERS][NAME_MAX_LENGTH];
+                  static char binds_list[MAX_USERS][64];
                   static char binds_label[MAX_USERS][NAME_MAX_LENGTH];
                   unsigned user_value = user + 1;
                   size_t _len = snprintf(binds_list[user],  sizeof(binds_list[user]), "%d", user_value);

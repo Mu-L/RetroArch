@@ -342,14 +342,14 @@ static void video_shader_replace_wildcards(char *s, size_t len, char *in_preset_
                break;
             case RARCH_WC_VIEWPORT_ASPECT_ORIENTATION:
                {
-                  unsigned viewport_width  = 0;
-                  unsigned viewport_height = 0;
-                  video_driver_get_size(&viewport_width, &viewport_height);
+                  unsigned vp_width  = 0;
+                  unsigned vp_height = 0;
+                  video_driver_get_size(&vp_width, &vp_height);
                   replace_len  = strlcpy(replace_text,
                         "VIEW-ASPECT-ORIENT-",
                         sizeof(replace_text));
                   replace_len += strlcpy(replace_text + replace_len,
-                        ((float)viewport_width / viewport_height < 1)
+                        ((float)vp_width / vp_height < 1)
                         ? "VERT" : "HORZ",
                         sizeof(replace_text) - replace_len);
                }
@@ -803,8 +803,6 @@ static bool video_shader_parse_textures(config_file_t *conf,
          bool mipmap                     = false;
          bool smooth                     = false;
          struct config_entry_list *entry = NULL;
-
-         idx[0]                          = '\0';
 
          if ( !(entry = config_get_entry(conf, id))
              || string_is_empty(entry->value))
